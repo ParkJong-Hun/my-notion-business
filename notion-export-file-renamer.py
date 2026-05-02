@@ -36,26 +36,27 @@ def extract_and_replace_src():
     zip_file_path = os.path.join(raw_folder, zip_files[0])
 
     # 압축 해제
+    extract_path = os.path.join(root_dir, 'temp_extract')
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
-        extract_path = os.path.join(root_dir, 'temp_extract')
         zip_ref.extractall(extract_path)
+
+    # Notion이 내보내기 zip을 또 다른 zip으로 감싸는 새 형식 처리
+    extracted_items = os.listdir(extract_path)
+    if len(extracted_items) == 1 and extracted_items[0].endswith('.zip'):
+        inner_zip_path = os.path.join(extract_path, extracted_items[0])
+        inner_extract_path = os.path.join(root_dir, 'temp_extract_inner')
+        with zipfile.ZipFile(inner_zip_path, 'r') as zip_ref:
+            zip_ref.extractall(inner_extract_path)
+        shutil.rmtree(extract_path)
+        extract_path = inner_extract_path
 
     # 기존 src 폴더 삭제
     src_path = os.path.join(root_dir, 'src')
     if os.path.exists(src_path):
         shutil.rmtree(src_path)
 
-    # 압축 해제된 폴더를 src로 이동 및 이름 변경
-    extracted_folders = [d for d in os.listdir(extract_path) if os.path.isdir(os.path.join(extract_path, d))]
-    if not extracted_folders:
-        print("No folders found in the extracted zip file.")
-        return
-
-    extracted_folder_path = os.path.join(extract_path, extracted_folders[0])
-    shutil.move(extracted_folder_path, src_path)
-
-    # 임시 폴더 삭제
-    shutil.rmtree(extract_path)
+    # 압축 해제된 전체 폴더를 src로 이동
+    os.rename(extract_path, src_path)
 
 if __name__ == "__main__":
     extract_and_replace_src()

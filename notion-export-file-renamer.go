@@ -126,6 +126,22 @@ func extractAndReplaceSrc() {
 		return
 	}
 
+	// Notion now wraps the export zip inside another zip. If the extracted
+	// content is a single zip file, extract that inner zip as the real content.
+	innerFiles, _ := os.ReadDir(extractPath)
+	if len(innerFiles) == 1 && !innerFiles[0].IsDir() && strings.HasSuffix(innerFiles[0].Name(), ".zip") {
+		innerZipPath := filepath.Join(extractPath, innerFiles[0].Name())
+		innerExtractPath := filepath.Join(rootDir, "temp_extract_inner")
+		err = unzip(innerZipPath, innerExtractPath)
+		if err != nil {
+			fmt.Println("Error extracting inner zip file:", err)
+			os.RemoveAll(extractPath)
+			return
+		}
+		os.RemoveAll(extractPath)
+		extractPath = innerExtractPath
+	}
+
 	srcPath := filepath.Join(rootDir, "src")
 	if _, err := os.Stat(srcPath); !os.IsNotExist(err) {
 		err = os.RemoveAll(srcPath)
